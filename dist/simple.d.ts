@@ -44,13 +44,16 @@ declare namespace Simple {
     }
 }
 declare namespace Simple {
-    class ObservableArray {
-        private _array;
+    class ObservableArray extends Array<any> {
+        private _copy;
         private _events;
-        constructor(array: any[]);
+        private _mutators;
+        constructor(array: any[], callback: (index: number, value: any) => void);
         private extend();
-        private call(eventName, result, ...args);
-        addEventListener(name: string, event: (result: any, ...args: any[]) => void): void;
+        private extendFunction(key, func);
+        private call(eventName, oldValue?, newValue?);
+        addEventListener(name: string, event: (oldValue?: any[], newValue?: any[]) => void): void;
+        addEventListeners(names: string[], event: (oldValue?: any[], newValue?: any[]) => void): void;
     }
 }
 declare namespace Simple {
@@ -65,11 +68,12 @@ declare namespace Simple {
         valueChangedEvents: IStringDictionary<((oldValue?, newValue?) => void)[]>;
         constructor(parent: any, key: string);
         watch(path: string, callback: (oldValue?: any, newValue?: any) => void): void;
-        valueChanged(path: string, oldValue: any, newValue: any): void;
+        private valueChanged(path, oldValue, newValue);
         private canUpdate(forceSet, oldValue, newValue);
         private isObject(value);
         private setObject(object, value, key, path);
         private resetObject(path);
+        private watchArrayFunctions(path, observableArray);
         private setArray(object, value, key, path);
         private set(object, newValue, key, path, forceSet?);
         protected bind(object: any, key: string | number, path: string): void;

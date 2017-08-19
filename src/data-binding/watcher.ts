@@ -23,7 +23,7 @@ namespace Simple {
             this.valueChangedEvents[path].push(callback);
         }
 
-        public valueChanged(path: string, oldValue: any, newValue: any): void {
+        private valueChanged(path: string, oldValue: any, newValue: any): void {
             let callBackArray = this.valueChangedEvents[path];
 
             if (callBackArray) {
@@ -48,10 +48,12 @@ namespace Simple {
         }
 
         private isObject(value: any): boolean {
-            if (typeof value !== 'function' && typeof value !== 'string') {
-                if (Object.keys(value)) {
-                    if (!Array.isArray(value)) {
-                        return true;
+            if (value) { 
+                if (typeof value !== 'function' && typeof value !== 'string') {
+                    if (Object.keys(value)) {
+                        if (!Array.isArray(value)) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -82,22 +84,36 @@ namespace Simple {
             }
         }
 
-        private setArray(object: any, value: any[], key: string | number, path: string): void {                  
-            for (let i = 0; i < value.length; i++) {
-                let item = value[i];
+        private watchArrayFunctions( path: string, observableArray: ObservableArray): any[] {
+            observableArray.addEventListeners([
+                'push',
+                'pop',
+                'shift',
+                'unshift',
+                'splice',
+                'sort',
+                'reverse'
+            ], (oldValue, newValue) => {
+                this.valueChanged(path, oldValue, newValue);
+            });
 
-                let itemPath = `${path}[${i}]`;
+            return observableArray;
+        }
 
-                this.bind(object[key], i, itemPath);
-                this.set(object[key], item, i, itemPath, true);
+        private setArray(object: any, value: any[], key: string | number, path: string): any[] {    
+            return this.watchArrayFunctions(path, new ObservableArray(value, (index, item) => {
+                let itemPath = `${path}[${index}]`;
+                
+                this.bind(object[key], index, itemPath);
+                this.set(object[key], item, index, itemPath, true);
 
                 for (let child in item) {
-                    let childPath = `${path}[${i}].${child}`;
+                    let childPath = `${path}[${index}].${child}`;
 
-                    this.bind(object[key][i], child, childPath);
-                    this.set(object[key][i][child], item[child], child, childPath, true);
+                    this.bind(object[key][index], child, childPath);
+                    this.set(object[key][index][child], item[child], child, childPath, true);
                 }
-            }
+            }));
         }
 
         private set(object: any, newValue: any, key: string|number, path: string, forceSet = false): void {
@@ -113,7 +129,7 @@ namespace Simple {
                 } else if (wasObject) {
                     this.resetObject(path);
                 } else if (Array.isArray(newValue)) {
-                    this.setArray(object, newValue, key, path);
+                    this.objectGraph[path] = this.setArray(object, newValue, key, path);
                 }
             }
         }
