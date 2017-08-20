@@ -1,11 +1,14 @@
 declare class Test {
     static testClasses: ITestClass[];
-    static errors: Error[];
-    private static checkErrors();
+    private static addClass(el, className);
+    private static addTestGroup(body, name);
+    private static addTest(testGroup, name);
+    private static pass(testSection);
+    private static fail(testSection, e);
     static run(): void;
 }
 declare class Assert {
-    private static error(message?);
+    static fail(message?: string): void;
     static areEqual(expected: any, actual: any, message?: string): void;
     static areNotEqual(expected: any, actual: any, message?: string): void;
     static isTrue(value: boolean, message?: string): void;
