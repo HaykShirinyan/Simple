@@ -124,7 +124,41 @@ var WatcherSpec = (function () {
     ], WatcherSpec.prototype, "watch_object", null);
     return WatcherSpec;
 }());
+/// <reference path="../../../test-utils/index.d.ts" />
+/// <reference path="../../../dist/simple.d.ts" />
+var SimpleBindSpec = (function () {
+    function SimpleBindSpec() {
+    }
+    SimpleBindSpec.prototype.initializeContext = function () {
+        var HtmlService = new Simple.Services.Concrete.HtmlService();
+        var bind = new Simple.Rendering.Views.SimpleBind(HtmlService);
+        var element = HtmlService.craeteElement('p');
+        element.setAttribute('simple-bind', 'model.name');
+        element.textContent = 'test';
+        bind.initializeContext(element, undefined);
+        Assert.isTruthy(bind.model);
+        Assert.areEqual(bind.model.name, 'test');
+    };
+    SimpleBindSpec.prototype.initializeContext_valueChanged = function () {
+        var HtmlService = new Simple.Services.Concrete.HtmlService();
+        var bind = new Simple.Rendering.Views.SimpleBind(HtmlService);
+        var element = HtmlService.craeteElement('p');
+        element.setAttribute('simple-bind', 'model.name');
+        element.textContent = 'test';
+        bind.initializeContext(element, undefined);
+        bind.model.name = 'changed';
+        Assert.areEqual(bind.model.name, element.textContent);
+    };
+    __decorate([
+        testMethod()
+    ], SimpleBindSpec.prototype, "initializeContext", null);
+    __decorate([
+        testMethod()
+    ], SimpleBindSpec.prototype, "initializeContext_valueChanged", null);
+    return SimpleBindSpec;
+}());
 /// <reference path="../test-utils/index.d.ts" />
 /// <reference path="data-binding/watcher.spec.ts" />
+/// <reference path="rendering/views/simple-bind.ts" />
 Test.run();
 //# sourceMappingURL=simple.spec.js.map

@@ -6,6 +6,14 @@ var Simple;
         };
     }
     Simple.injectable = injectable;
+    function view(injection) {
+        return function (target) {
+            target.prototype.constructor.viewName = injection.name;
+            Simple.Configuration.container.register(injection.name, target, injection.dependencies);
+            Simple.Configuration.$views[injection.name] = injection.selector || injection.name;
+        };
+    }
+    Simple.view = view;
 })(Simple || (Simple = {}));
 /// <reference path="decorators.ts" />
 var Simple;
@@ -17,6 +25,7 @@ var Simple;
             get: function () {
                 if (!Configuration._container) {
                     Configuration._container = new Simple.ServiceContainer();
+                    Configuration._container.addInstance('$serviceContainer', Configuration._container);
                 }
                 return Configuration._container;
             },
@@ -35,6 +44,7 @@ var Simple;
         Configuration.resolve = function (name) {
             return Configuration.container.get(name);
         };
+        Configuration.$views = {};
         return Configuration;
     }());
     Simple.Configuration = Configuration;
@@ -127,6 +137,46 @@ var Simple;
         return ServiceContainer;
     }());
     Simple.ServiceContainer = ServiceContainer;
+})(Simple || (Simple = {}));
+/// <reference path="decorators.ts" />
+/// <reference path="services/i-html-service.ts" />
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var Simple;
+(function (Simple) {
+    var View = (function () {
+        function View(htmlService) {
+            this.htmlService = htmlService;
+            this.modelWatcher = new Simple.Watcher(this, 'model');
+            this.viewDataWatcher = new Simple.Watcher(this, 'viewData');
+        }
+        View.prototype.setPath = function (obj, path, value) {
+            var array = path.split('.');
+            if (!obj) {
+                obj = {};
+            }
+            for (var i = 0; i < array.length - 1; i++) {
+                obj = obj[i] || {};
+            }
+            obj[array[array.length - 1]] = value;
+            return obj;
+        };
+        View.prototype.initializeContext = function (element, model) {
+            this.model = model;
+        };
+        View.viewName = 'simple-view';
+        View = __decorate([
+            Simple.view({
+                name: 'simple-view'
+            })
+        ], View);
+        return View;
+    }());
+    Simple.View = View;
 })(Simple || (Simple = {}));
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
@@ -346,5 +396,200 @@ var Simple;
         return Watcher;
     }());
     Simple.Watcher = Watcher;
+})(Simple || (Simple = {}));
+/// <reference path="../../services/i-html-service.ts" />
+var Simple;
+(function (Simple) {
+    var Rendering;
+    (function (Rendering) {
+        var Concrete;
+        (function (Concrete) {
+            var ViewEngine = (function () {
+                function ViewEngine(htmlService, serviceContainer) {
+                    this._htmlService = htmlService;
+                    this._serviceContainer = serviceContainer;
+                }
+                ViewEngine.prototype.renderView = function (data) {
+                    for (var key in Simple.Configuration.$views) {
+                        var element = this._htmlService.select(Simple.Configuration.$views[key]);
+                        if (element) {
+                            var view_1 = this._serviceContainer.get(key);
+                            view_1.initializeContext(element, data);
+                        }
+                    }
+                };
+                ViewEngine = __decorate([
+                    Simple.injectable({
+                        name: '$viewEngine',
+                        singleton: true,
+                        dependencies: [
+                            '$htmlService',
+                            '$serviceContainer'
+                        ]
+                    })
+                ], ViewEngine);
+                return ViewEngine;
+            }());
+        })(Concrete = Rendering.Concrete || (Rendering.Concrete = {}));
+    })(Rendering = Simple.Rendering || (Simple.Rendering = {}));
+})(Simple || (Simple = {}));
+var Simple;
+(function (Simple) {
+    var Rendering;
+    (function (Rendering) {
+        var Views;
+        (function (Views) {
+            var SimpleBind = (function (_super) {
+                __extends(SimpleBind, _super);
+                function SimpleBind(htmlService) {
+                    return _super.call(this, htmlService) || this;
+                }
+                SimpleBind_1 = SimpleBind;
+                SimpleBind.prototype.initializeContext = function (element, model) {
+                    _super.prototype.initializeContext.call(this, element, model);
+                    var attr = element.getAttribute(SimpleBind_1.viewName);
+                    if (this.model) {
+                        if (attr.indexOf('model.') === 0) {
+                            this.modelWatcher.watch(attr, function (oldValue, newValue) {
+                                element.textContent = newValue;
+                            });
+                        }
+                        else if (attr.indexOf('viewData.') === 0) {
+                            this.viewDataWatcher.watch(attr, function (oldValue, newValue) {
+                                element.textContent = newValue;
+                            });
+                        }
+                    }
+                    else {
+                        if (attr.indexOf('model.') === 0) {
+                            this.model = this.setPath(this.model, attr, element.textContent);
+                        }
+                        else if (attr.indexOf('viewData.') === 0) {
+                            this.viewData = this.setPath(this.viewData, attr, element.textContent);
+                        }
+                        this.initializeContext(element, this.model);
+                    }
+                };
+                SimpleBind = SimpleBind_1 = __decorate([
+                    Simple.view({
+                        name: 'simple-bind',
+                        selector: '[simple-bind]:not([simple-repeat] [simple-bind])'
+                    })
+                ], SimpleBind);
+                return SimpleBind;
+                var SimpleBind_1;
+            }(Simple.View));
+            Views.SimpleBind = SimpleBind;
+        })(Views = Rendering.Views || (Rendering.Views = {}));
+    })(Rendering = Simple.Rendering || (Simple.Rendering = {}));
+})(Simple || (Simple = {}));
+/// <reference path="../../decorators.ts" />
+var Simple;
+(function (Simple) {
+    var Services;
+    (function (Services) {
+        var Concrete;
+        (function (Concrete) {
+            var HtmlService = (function () {
+                function HtmlService() {
+                    this._document = document;
+                    this._window = window;
+                }
+                HtmlService.prototype.ready = function (func) {
+                    if (this._document.attachEvent ? this._document.readyState === "complete" : this._document.readyState !== "loading") {
+                        func();
+                    }
+                    else {
+                        this._document.addEventListener('DOMContentLoaded', func);
+                    }
+                };
+                HtmlService.prototype.addEventListener = function (name, callback) {
+                    this._window.addEventListener(name, callback);
+                };
+                HtmlService.prototype.select = function (selector, context) {
+                    return context
+                        ? context.querySelector(selector)
+                        : this._document.querySelector(selector);
+                };
+                HtmlService.prototype.selectAll = function (selector, context) {
+                    return context
+                        ? context.querySelectorAll(selector)
+                        : this._document.querySelectorAll(selector);
+                };
+                HtmlService.prototype.craeteElement = function (name) {
+                    return this._document.createElement(name);
+                };
+                HtmlService = __decorate([
+                    Simple.injectable({
+                        name: '$htmlService'
+                    })
+                ], HtmlService);
+                return HtmlService;
+            }());
+            Concrete.HtmlService = HtmlService;
+        })(Concrete = Services.Concrete || (Services.Concrete = {}));
+    })(Services = Simple.Services || (Simple.Services = {}));
+})(Simple || (Simple = {}));
+/// <reference path="../../decorators.ts" />
+/// <reference path="../i-http-service.ts" />
+var Simple;
+(function (Simple) {
+    var Services;
+    (function (Services) {
+        var Concrete;
+        (function (Concrete) {
+            var HttpService = (function () {
+                function HttpService() {
+                }
+                HttpService.prototype.parseResponse = function (responseText) {
+                    if (responseText) {
+                        return JSON.parse(responseText);
+                    }
+                    return responseText;
+                };
+                HttpService.prototype.success = function (request) {
+                    return {
+                        statusCode: request.status,
+                        data: this.parseResponse(request.responseText)
+                    };
+                };
+                HttpService.prototype.fail = function (request) {
+                    return {
+                        statusCode: request.status,
+                        data: this.parseResponse(request.responseText)
+                    };
+                };
+                HttpService.prototype.get = function (url) {
+                    var _this = this;
+                    return new Promise(function (resolve, reject) {
+                        var request = new XMLHttpRequest();
+                        request.open('GET', '/my/url', true);
+                        request.onload = function () {
+                            if (request.status >= 200 && request.status < 400) {
+                                // Success!
+                                resolve(_this.success(request));
+                            }
+                            else {
+                                // We reached our target server, but it returned an error
+                                reject(_this.fail(request));
+                            }
+                        };
+                        request.onerror = function () {
+                            // There was a connection error of some sort
+                            reject(_this.fail(request));
+                        };
+                        request.send();
+                    });
+                };
+                HttpService = __decorate([
+                    Simple.injectable({
+                        name: '$httpService'
+                    })
+                ], HttpService);
+                return HttpService;
+            }());
+            Concrete.HttpService = HttpService;
+        })(Concrete = Services.Concrete || (Services.Concrete = {}));
+    })(Services = Simple.Services || (Simple.Services = {}));
 })(Simple || (Simple = {}));
 //# sourceMappingURL=simple.js.map

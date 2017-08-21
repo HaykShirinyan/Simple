@@ -1,13 +1,15 @@
 /// <reference path="decorators.ts" />
 
-
 namespace Simple {
     export class Configuration {
         private static _container: IServiceContainer;
+        public static $views: IStringDictionary<string> = {};
 
         public static get container(): IServiceContainer {
             if (!Configuration._container) {
                 Configuration._container = new ServiceContainer();
+
+                Configuration._container.addInstance('$serviceContainer', Configuration._container);
             }
             
             return Configuration._container

@@ -104,12 +104,24 @@ class Assert {
     }
 
     public static isTrue(value: boolean, message?: string): void {
-        if (!value) {
+        if (value !== true) {
             throw new Error(message);
         } 
     }
 
     public static isFalse(value: boolean, message?: string): void {
+        if (value !== false) {
+            throw new Error(message);
+        }
+    }
+
+    public static isTruthy(value: any, message?: string): void {
+        if (!value) {
+            throw new Error(message);
+        }
+    }
+
+    public static isFalsy(value: any, message?: string): void {
         if (value) {
             throw new Error(message);
         }

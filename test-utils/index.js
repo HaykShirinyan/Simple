@@ -83,11 +83,21 @@ var Assert = (function () {
         }
     };
     Assert.isTrue = function (value, message) {
-        if (!value) {
+        if (value !== true) {
             throw new Error(message);
         }
     };
     Assert.isFalse = function (value, message) {
+        if (value !== false) {
+            throw new Error(message);
+        }
+    };
+    Assert.isTruthy = function (value, message) {
+        if (!value) {
+            throw new Error(message);
+        }
+    };
+    Assert.isFalsy = function (value, message) {
         if (value) {
             throw new Error(message);
         }

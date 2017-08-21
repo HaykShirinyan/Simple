@@ -13,6 +13,8 @@ declare class Assert {
     static areNotEqual(expected: any, actual: any, message?: string): void;
     static isTrue(value: boolean, message?: string): void;
     static isFalse(value: boolean, message?: string): void;
+    static isTruthy(value: any, message?: string): void;
+    static isFalsy(value: any, message?: string): void;
 }
 interface ITestClass {
     obj: Function;
