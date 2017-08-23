@@ -126,6 +126,10 @@ class Assert {
             throw new Error(message);
         }
     }
+
+    public static delay(callBack: (...args: any[]) => void, milliseconds: number): void {
+
+    }
 }
 
 interface ITestClass {

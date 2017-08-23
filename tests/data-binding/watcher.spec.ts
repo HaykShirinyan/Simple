@@ -150,4 +150,25 @@ class WatcherSpec {
         view.model.first.second.third += ' changed';
         view.model.second = 'changed'; 
     }
+
+    @testMethod()
+    public watch_propAdded() {
+        let view: any = {
+            model: {}
+        }, newValueCalled = 0
+        ;
+
+        let watcher = new Simple.Watcher(view, 'model');
+
+        watcher.watch('model.first', (oldValue, newValue) => {
+            Assert.areNotEqual(oldValue, newValue);
+            newValueCalled++;
+        });
+
+        view.model.first = new Date();
+
+        window.setTimeout(()=> {
+            Assert.areNotEqual(0, newValueCalled);
+        }, 10);
+    }
 }

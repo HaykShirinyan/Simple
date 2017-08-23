@@ -6,8 +6,8 @@ namespace Simple {
         name: 'simple-view'
     })
     export class View<T> {
-        protected modelWatcher: Watcher;
-        protected viewDataWatcher: Watcher;
+        public modelWatcher: Watcher;
+        public viewDataWatcher: Watcher;
 
         protected htmlService: Services.IHtmlService;
 
@@ -28,12 +28,8 @@ namespace Simple {
         protected setPath(obj: any, path: string, value: any): any {
             let array = path.split('.');
 
-            if (!obj) {
-                obj = {};
-            }
-
             for (let i = 0; i < array.length - 1; i++) {
-                obj = obj[i] || {};
+                obj = obj[array[i]] || {};
             }
 
             obj[array[array.length - 1]] = value;

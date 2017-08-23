@@ -12,7 +12,13 @@ namespace Simple {
             this.objectGraph = {};
             this.valueChangedEvents = {}; 
 
+            let value = parent[key];
+
             this.bind(parent, key, key);
+
+            if (value) {
+                this.set(parent, value, key, key, true);
+            }
         }
 
         public watch(path: string, callback: (oldValue?: any, newValue?: any) => void) {
@@ -100,6 +106,28 @@ namespace Simple {
             return observableArray;
         }
 
+        private schedule(value: any, key: string | number, path: string): void {
+            let keyCount = Object.keys(value).length;
+            
+            let handler = window.setTimeout(() => {
+                if (keyCount !== Object.keys(value).length) {
+                    for (let prop in value) {
+                        if (!Object.getOwnPropertyDescriptor(value, prop).get) {
+                            let childPath = path + '.' + prop;
+
+                            let currentValue = value[prop];                            
+                            value[prop] = undefined;
+                            
+                            this.bind(value, prop, childPath);
+                            this.set(value, currentValue, prop, childPath, true);
+                        }
+                    }
+                }
+                
+                window.clearTimeout(handler);
+            }, 1);
+        }
+
         private setArray(object: any, value: any[], key: string | number, path: string): any[] {    
             return this.watchArrayFunctions(path, new ObservableArray(value, (index, item) => {
                 let itemPath = `${path}[${index}]`;
@@ -116,7 +144,7 @@ namespace Simple {
             }));
         }
 
-        private set(object: any, newValue: any, key: string|number, path: string, forceSet = false): void {
+        private set(object: any, newValue: any, key: string | number, path: string, forceSet = false): void {
             let oldValue = this.objectGraph[path];
             let wasObject = this.isObject(oldValue);
 
@@ -134,7 +162,17 @@ namespace Simple {
             }
         }
 
-        protected bind(object: any, key: string|number, path: string): void {
+        private get(key: string | number, path: string): any {
+            let value = this.objectGraph[path];
+
+            if (this.isObject(value)) {
+                this.schedule(value, key, path);
+            }
+
+            return value;
+        }
+
+        protected bind(object: any, key: string | number, path: string): void {
             if (!(path in this.objectGraph)) {
                 this.objectGraph[path] = object[key];
             }
@@ -143,7 +181,7 @@ namespace Simple {
                 enumerable: true,
                 configurable: true,
                 get: () => {
-                    return this.objectGraph[path];
+                    return this.get(key, path);
                 },
                 set: value => {
                     this.set(object, value, key, path);

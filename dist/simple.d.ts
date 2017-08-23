@@ -61,8 +61,8 @@ declare namespace Simple.Services {
 }
 declare namespace Simple {
     class View<T> {
-        protected modelWatcher: Watcher;
-        protected viewDataWatcher: Watcher;
+        modelWatcher: Watcher;
+        viewDataWatcher: Watcher;
         protected htmlService: Services.IHtmlService;
         static viewName: string;
         selector: string;
@@ -104,8 +104,10 @@ declare namespace Simple {
         private setObject(object, value, key, path);
         private resetObject(path);
         private watchArrayFunctions(path, observableArray);
+        private schedule(value, key, path);
         private setArray(object, value, key, path);
         private set(object, newValue, key, path, forceSet?);
+        private get(key, path);
         protected bind(object: any, key: string | number, path: string): void;
     }
 }
@@ -117,9 +119,12 @@ declare namespace Simple.Rendering {
 declare namespace Simple.Rendering.Concrete {
 }
 declare namespace Simple.Rendering.Views {
-    class SimpleBind<T> extends View<T> {
+    class SimpleBind<T> {
+        static viewName: string;
+        protected htmlService: Services.IHtmlService;
         constructor(htmlService: Services.IHtmlService);
-        initializeContext(element: Element, model: T): void;
+        protected setPath(obj: any, path: string, value: any): void;
+        initializeContext(viewContext: Element, view: View<T>): void;
     }
 }
 declare namespace Simple.Services {

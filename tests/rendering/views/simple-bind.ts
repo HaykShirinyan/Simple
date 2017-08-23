@@ -6,31 +6,37 @@ class SimpleBindSpec {
     public initializeContext(): void {
         let HtmlService = new Simple.Services.Concrete.HtmlService();
         let bind = new Simple.Rendering.Views.SimpleBind<any>(HtmlService);
+        let view = new Simple.View<any>(HtmlService);
         
+        let viewContext = HtmlService.craeteElement('div');
         let element = HtmlService.craeteElement('p');
         
         element.setAttribute('simple-bind', 'model.name');
         element.textContent = 'test';
+        viewContext.appendChild(element);
 
-        bind.initializeContext(element, undefined);
+        bind.initializeContext(viewContext, view);
 
-        Assert.isTruthy(bind.model);
-        Assert.areEqual(bind.model.name, 'test');
+        Assert.isTruthy(view.model);
+        Assert.areEqual(view.model.name, 'test');
     }
 
     @testMethod()
     public initializeContext_valueChanged() {
         let HtmlService = new Simple.Services.Concrete.HtmlService();
         let bind = new Simple.Rendering.Views.SimpleBind<any>(HtmlService);
+        let view = new Simple.View<any>(HtmlService);
         
+        let viewContext = HtmlService.craeteElement('div');
         let element = HtmlService.craeteElement('p');
         
-        element.setAttribute('simple-bind', 'model.name');
+        element.setAttribute('simple-bind', 'model.name.first');
         element.textContent = 'test';
+        viewContext.appendChild(element);
 
-        bind.initializeContext(element, undefined);
-        bind.model.name = 'changed';
+        bind.initializeContext(viewContext, view);
+        view.model.name.first = 'changed';
         
-        Assert.areEqual(bind.model.name, element.textContent);
+        window.setTimeout(() =>  Assert.areEqual(view.model.name.first, element.textContent), 10);
     }
 }

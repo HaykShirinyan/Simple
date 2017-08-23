@@ -156,11 +156,8 @@ var Simple;
         }
         View.prototype.setPath = function (obj, path, value) {
             var array = path.split('.');
-            if (!obj) {
-                obj = {};
-            }
             for (var i = 0; i < array.length - 1; i++) {
-                obj = obj[i] || {};
+                obj = obj[array[i]] || {};
             }
             obj[array[array.length - 1]] = value;
             return obj;
@@ -273,7 +270,11 @@ var Simple;
             this.parent = parent;
             this.objectGraph = {};
             this.valueChangedEvents = {};
+            var value = parent[key];
             this.bind(parent, key, key);
+            if (value) {
+                this.set(parent, value, key, key, true);
+            }
         }
         Watcher.prototype.watch = function (path, callback) {
             if (!Array.isArray(this.valueChangedEvents[path])) {
@@ -346,6 +347,24 @@ var Simple;
             });
             return observableArray;
         };
+        Watcher.prototype.schedule = function (value, key, path) {
+            var _this = this;
+            var keyCount = Object.keys(value).length;
+            var handler = window.setTimeout(function () {
+                if (keyCount !== Object.keys(value).length) {
+                    for (var prop in value) {
+                        if (!Object.getOwnPropertyDescriptor(value, prop).get) {
+                            var childPath = path + '.' + prop;
+                            var currentValue = value[prop];
+                            value[prop] = undefined;
+                            _this.bind(value, prop, childPath);
+                            _this.set(value, currentValue, prop, childPath, true);
+                        }
+                    }
+                }
+                window.clearTimeout(handler);
+            }, 1);
+        };
         Watcher.prototype.setArray = function (object, value, key, path) {
             var _this = this;
             return this.watchArrayFunctions(path, new Simple.ObservableArray(value, function (index, item) {
@@ -377,6 +396,13 @@ var Simple;
                 }
             }
         };
+        Watcher.prototype.get = function (key, path) {
+            var value = this.objectGraph[path];
+            if (this.isObject(value)) {
+                this.schedule(value, key, path);
+            }
+            return value;
+        };
         Watcher.prototype.bind = function (object, key, path) {
             var _this = this;
             if (!(path in this.objectGraph)) {
@@ -386,7 +412,7 @@ var Simple;
                 enumerable: true,
                 configurable: true,
                 get: function () {
-                    return _this.objectGraph[path];
+                    return _this.get(key, path);
                 },
                 set: function (value) {
                     _this.set(object, value, key, path);
@@ -439,46 +465,53 @@ var Simple;
     (function (Rendering) {
         var Views;
         (function (Views) {
-            var SimpleBind = (function (_super) {
-                __extends(SimpleBind, _super);
+            var SimpleBind = (function () {
                 function SimpleBind(htmlService) {
-                    return _super.call(this, htmlService) || this;
+                    this.htmlService = htmlService;
                 }
-                SimpleBind_1 = SimpleBind;
-                SimpleBind.prototype.initializeContext = function (element, model) {
-                    _super.prototype.initializeContext.call(this, element, model);
-                    var attr = element.getAttribute(SimpleBind_1.viewName);
-                    if (this.model) {
-                        if (attr.indexOf('model.') === 0) {
-                            this.modelWatcher.watch(attr, function (oldValue, newValue) {
-                                element.textContent = newValue;
-                            });
+                SimpleBind.prototype.setPath = function (obj, path, value) {
+                    var array = path.split('.');
+                    for (var i = 0; i < array.length - 1; i++) {
+                        if (!obj[array[i]]) {
+                            obj[array[i]] = {};
                         }
-                        else if (attr.indexOf('viewData.') === 0) {
-                            this.viewDataWatcher.watch(attr, function (oldValue, newValue) {
-                                element.textContent = newValue;
-                            });
-                        }
+                        obj = obj[array[i]] || {};
                     }
-                    else {
+                    obj[array[array.length - 1]] = value;
+                };
+                SimpleBind.prototype.initializeContext = function (viewContext, view) {
+                    var elements = this.htmlService.selectAll('[simple-bind]', viewContext);
+                    view.model = view.model || {};
+                    view.viewData = view.viewData || {};
+                    var _loop_1 = function (i) {
+                        var element = elements[i];
+                        var attr = element.getAttribute('simple-bind');
                         if (attr.indexOf('model.') === 0) {
-                            this.model = this.setPath(this.model, attr, element.textContent);
+                            view.modelWatcher.watch(attr, function (oldValue, newValue) {
+                                element.textContent = newValue;
+                            });
+                            this_1.setPath(view.model, attr.substring('model.'.length), element.textContent);
                         }
                         else if (attr.indexOf('viewData.') === 0) {
-                            this.viewData = this.setPath(this.viewData, attr, element.textContent);
+                            view.viewDataWatcher.watch(attr, function (oldValue, newValue) {
+                                element.textContent = newValue;
+                            });
+                            this_1.setPath(view.viewData, attr.substring('viewData.'.length), element.textContent);
                         }
-                        this.initializeContext(element, this.model);
+                    };
+                    var this_1 = this;
+                    for (var i = 0; i < elements.length; i++) {
+                        _loop_1(i);
                     }
                 };
-                SimpleBind = SimpleBind_1 = __decorate([
+                SimpleBind = __decorate([
                     Simple.view({
                         name: 'simple-bind',
                         selector: '[simple-bind]:not([simple-repeat] [simple-bind])'
                     })
                 ], SimpleBind);
                 return SimpleBind;
-                var SimpleBind_1;
-            }(Simple.View));
+            }());
             Views.SimpleBind = SimpleBind;
         })(Views = Rendering.Views || (Rendering.Views = {}));
     })(Rendering = Simple.Rendering || (Simple.Rendering = {}));

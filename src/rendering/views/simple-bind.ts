@@ -4,34 +4,50 @@ namespace Simple.Rendering.Views {
         name: 'simple-bind',
         selector: '[simple-bind]:not([simple-repeat] [simple-bind])'
     })
-    export class SimpleBind<T> extends View<T> {
+    export class SimpleBind<T> {
+        public static viewName: string;
+        protected htmlService: Services.IHtmlService;
+
         constructor(htmlService: Services.IHtmlService) {
-            super(htmlService);
+            this.htmlService = htmlService;
         }
 
-        public initializeContext(element: Element, model: T): void {
-            super.initializeContext(element, model);
+        protected setPath(obj: any, path: string, value: any): void {
+            let array = path.split('.');
 
-            let attr = element.getAttribute(SimpleBind.viewName);
-            
-            if (this.model) {
-                if (attr.indexOf('model.') === 0) {
-                    this.modelWatcher.watch(attr, (oldValue, newValue) => {
-                        element.textContent = newValue;
-                    });
-                } else if (attr.indexOf('viewData.') === 0) {
-                    this.viewDataWatcher.watch(attr, (oldValue, newValue) => {
-                        element.textContent = newValue;
-                    });
-                }
-            } else {
-                if (attr.indexOf('model.') === 0) {
-                    this.model = this.setPath(this.model, attr, element.textContent);
-                } else if (attr.indexOf('viewData.') === 0) {
-                    this.viewData = this.setPath(this.viewData, attr, element.textContent);
+            for (let i = 0; i < array.length - 1; i++) {
+                if (!obj[array[i]]) {
+                    obj[array[i]] = {};
                 }
 
-                this.initializeContext(element, this.model);
+                obj = obj[array[i]] || {};
+            }
+
+            obj[array[array.length - 1]] = value;
+        }
+
+        public initializeContext(viewContext: Element, view: View<T>): void {
+            let elements = this.htmlService.selectAll('[simple-bind]', viewContext);
+            view.model = view.model || <T>{};
+            view.viewData = view.viewData || {};
+
+            for (let i = 0; i < elements.length; i++) {
+                let element = elements[i];
+                let attr = element.getAttribute('simple-bind');
+
+                if (attr.indexOf('model.') === 0) {
+                    view.modelWatcher.watch(attr, (oldValue, newValue) => {
+                        element.textContent = newValue;
+                    });
+                    
+                    this.setPath(view.model, attr.substring('model.'.length), element.textContent);
+                } else if (attr.indexOf('viewData.') === 0) {
+                    view.viewDataWatcher.watch(attr, (oldValue, newValue) => {
+                        element.textContent = newValue;
+                    });
+
+                    this.setPath(view.viewData, attr.substring('viewData.'.length), element.textContent);
+                }
             }
         }
     }

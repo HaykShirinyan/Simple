@@ -110,6 +110,20 @@ var WatcherSpec = (function () {
         view.model.first.second.third += ' changed';
         view.model.second = 'changed';
     };
+    WatcherSpec.prototype.watch_propAdded = function () {
+        var view = {
+            model: {}
+        }, newValueCalled = 0;
+        var watcher = new Simple.Watcher(view, 'model');
+        watcher.watch('model.first', function (oldValue, newValue) {
+            Assert.areNotEqual(oldValue, newValue);
+            newValueCalled++;
+        });
+        view.model.first = new Date();
+        window.setTimeout(function () {
+            Assert.areNotEqual(0, newValueCalled);
+        }, 10);
+    };
     __decorate([
         testMethod()
     ], WatcherSpec.prototype, "watch_wasCalled_simpleProps", null);
@@ -122,6 +136,9 @@ var WatcherSpec = (function () {
     __decorate([
         testMethod()
     ], WatcherSpec.prototype, "watch_object", null);
+    __decorate([
+        testMethod()
+    ], WatcherSpec.prototype, "watch_propAdded", null);
     return WatcherSpec;
 }());
 /// <reference path="../../../test-utils/index.d.ts" />
@@ -132,22 +149,28 @@ var SimpleBindSpec = (function () {
     SimpleBindSpec.prototype.initializeContext = function () {
         var HtmlService = new Simple.Services.Concrete.HtmlService();
         var bind = new Simple.Rendering.Views.SimpleBind(HtmlService);
+        var view = new Simple.View(HtmlService);
+        var viewContext = HtmlService.craeteElement('div');
         var element = HtmlService.craeteElement('p');
         element.setAttribute('simple-bind', 'model.name');
         element.textContent = 'test';
-        bind.initializeContext(element, undefined);
-        Assert.isTruthy(bind.model);
-        Assert.areEqual(bind.model.name, 'test');
+        viewContext.appendChild(element);
+        bind.initializeContext(viewContext, view);
+        Assert.isTruthy(view.model);
+        Assert.areEqual(view.model.name, 'test');
     };
     SimpleBindSpec.prototype.initializeContext_valueChanged = function () {
         var HtmlService = new Simple.Services.Concrete.HtmlService();
         var bind = new Simple.Rendering.Views.SimpleBind(HtmlService);
+        var view = new Simple.View(HtmlService);
+        var viewContext = HtmlService.craeteElement('div');
         var element = HtmlService.craeteElement('p');
-        element.setAttribute('simple-bind', 'model.name');
+        element.setAttribute('simple-bind', 'model.name.first');
         element.textContent = 'test';
-        bind.initializeContext(element, undefined);
-        bind.model.name = 'changed';
-        Assert.areEqual(bind.model.name, element.textContent);
+        viewContext.appendChild(element);
+        bind.initializeContext(viewContext, view);
+        view.model.name.first = 'changed';
+        window.setTimeout(function () { return Assert.areEqual(view.model.name.first, element.textContent); }, 10);
     };
     __decorate([
         testMethod()
