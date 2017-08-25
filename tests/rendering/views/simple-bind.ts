@@ -22,7 +22,7 @@ class SimpleBindSpec {
     }
 
     @testMethod()
-    public initializeContext_valueChanged() {
+    public async initializeContext_valueChanged(): Promise<void> {
         let HtmlService = new Simple.Services.Concrete.HtmlService();
         let bind = new Simple.Rendering.Views.SimpleBind<any>(HtmlService);
         let view = new Simple.View<any>(HtmlService);
@@ -37,6 +37,6 @@ class SimpleBindSpec {
         bind.initializeContext(viewContext, view);
         view.model.name.first = 'changed';
         
-        window.setTimeout(() =>  Assert.areEqual(view.model.name.first, element.textContent), 10);
+        await Assert.delay(() =>  Assert.areEqual(view.model.name.first, element.textContent), 10);
     }
 }

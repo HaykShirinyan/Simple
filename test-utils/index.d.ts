@@ -5,7 +5,7 @@ declare class Test {
     private static addTest(testGroup, name);
     private static pass(testSection);
     private static fail(testSection, e);
-    static run(): void;
+    static run(): Promise<void>;
 }
 declare class Assert {
     static fail(message?: string): void;
@@ -15,6 +15,7 @@ declare class Assert {
     static isFalse(value: boolean, message?: string): void;
     static isTruthy(value: any, message?: string): void;
     static isFalsy(value: any, message?: string): void;
+    static delay(callBack: (...args: any[]) => void, milliseconds?: number): Promise<void>;
 }
 interface ITestClass {
     obj: Function;

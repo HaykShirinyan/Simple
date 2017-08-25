@@ -1,5 +1,4 @@
 /// <reference path="../utils/i-string-dictionary.ts" />
-/// <reference path="observable-array.ts" />
 
 namespace Simple {
     export class Watcher {
@@ -69,10 +68,12 @@ namespace Simple {
 
         private setObject(object: any, value: any, key: string | number, path: string): void {
             for (let child in value) {
-                let childPath = path + '.' + child;
-
-                this.bind(object[key], child, childPath);
-                this.set(object[key], value[child], child, childPath, true);
+                if (value.hasOwnProperty(child)) {
+                    let childPath = path + '.' + child;
+                    
+                    this.bind(object[key], child, childPath);
+                    this.set(object[key], value[child], child, childPath, true);
+                }                
             }
         }
 
@@ -90,29 +91,13 @@ namespace Simple {
             }
         }
 
-        private watchArrayFunctions( path: string, observableArray: ObservableArray): any[] {
-            observableArray.addEventListeners([
-                'push',
-                'pop',
-                'shift',
-                'unshift',
-                'splice',
-                'sort',
-                'reverse'
-            ], (oldValue, newValue) => {
-                this.valueChanged(path, oldValue, newValue);
-            });
-
-            return observableArray;
-        }
-
         private schedule(value: any, key: string | number, path: string): void {
             let keyCount = Object.keys(value).length;
             
             let handler = window.setTimeout(() => {
                 if (keyCount !== Object.keys(value).length) {
                     for (let prop in value) {
-                        if (!Object.getOwnPropertyDescriptor(value, prop).get) {
+                        if (value.hasOwnProperty(prop) && !Object.getOwnPropertyDescriptor(value, prop).get) {
                             let childPath = path + '.' + prop;
 
                             let currentValue = value[prop];                            
@@ -128,20 +113,58 @@ namespace Simple {
             }, 1);
         }
 
+        private extendArrayMethods(value: any[], path: string): void {
+            let copy = [...value];
+            let methodNames = [
+                'push',
+                'pop',
+                'shift',
+                'unshift',
+                'splice',
+                'sort',
+                'reverse'
+            ];
+
+            for (let methodName of methodNames) {
+                let original = value[methodName];
+
+                Object.defineProperty(value, methodName, {
+                    configurable: false,
+                    enumerable: false,
+                    value: (...args: any[]) => {     
+                        let result = original.apply(value, args);
+    
+                        this.valueChanged(path, copy, value);
+    
+                        copy[methodName].apply(copy, args);
+                        
+                        return result;
+                    }
+                });
+            }
+        }
+
         private setArray(object: any, value: any[], key: string | number, path: string): any[] {    
-            return this.watchArrayFunctions(path, new ObservableArray(value, (index, item) => {
+            this.extendArrayMethods(value, path);
+
+            for (let index = 0; index < value.length; index++) {
+                let item = value[index];
                 let itemPath = `${path}[${index}]`;
                 
                 this.bind(object[key], index, itemPath);
                 this.set(object[key], item, index, itemPath, true);
 
                 for (let child in item) {
-                    let childPath = `${path}[${index}].${child}`;
+                    if (item.hasOwnProperty(child)) {
+                        let childPath = `${path}[${index}].${child}`;
 
-                    this.bind(object[key][index], child, childPath);
-                    this.set(object[key][index][child], item[child], child, childPath, true);
+                        this.bind(object[key][index], child, childPath);
+                        this.set(object[key][index][child], item[child], child, childPath, true);
+                    }
                 }
-            }));
+            }
+
+            return value;
         }
 
         private set(object: any, newValue: any, key: string | number, path: string, forceSet = false): void {

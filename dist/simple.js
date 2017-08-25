@@ -175,94 +175,7 @@ var Simple;
     }());
     Simple.View = View;
 })(Simple || (Simple = {}));
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var Simple;
-(function (Simple) {
-    var ObservableArray = (function (_super) {
-        __extends(ObservableArray, _super);
-        function ObservableArray(array, callback) {
-            var _this = _super.call(this) || this;
-            _this._mutators = [
-                'push',
-                'pop',
-                'shift',
-                'unshift',
-                'splice',
-                'sort',
-                'reverse'
-            ];
-            _this._events = {};
-            _this.extend();
-            _this.filter;
-            for (var index = 0; index < array.length; index++) {
-                var value = array[index];
-                _super.prototype.push.call(_this, value);
-                _this._copy.push(value);
-                callback(index, value);
-            }
-            return _this;
-        }
-        ObservableArray.prototype.extend = function () {
-            for (var key in this) {
-                var prop = this[key];
-                if (typeof prop === 'function') {
-                    this.extendFunction(key, prop);
-                }
-            }
-        };
-        ObservableArray.prototype.extendFunction = function (key, func) {
-            var _this = this;
-            this[key] = function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
-                var result = func.apply(_this, args);
-                _this.call(key, _this._copy, _this);
-                if (_this._mutators.indexOf(key) > -1) {
-                    _this._copy[key].apply(_this._copy, args);
-                }
-                return result;
-            };
-        };
-        ObservableArray.prototype.call = function (eventName, oldValue, newValue) {
-            var eventArray = this._events[eventName];
-            if (eventArray) {
-                for (var _i = 0, eventArray_1 = eventArray; _i < eventArray_1.length; _i++) {
-                    var event_1 = eventArray_1[_i];
-                    if (event_1) {
-                        event_1(oldValue, newValue);
-                    }
-                }
-            }
-        };
-        ObservableArray.prototype.addEventListener = function (name, event) {
-            if (!Array.isArray(this._events[name])) {
-                this._events[name] = [];
-            }
-            this._events[name].push(event);
-        };
-        ObservableArray.prototype.addEventListeners = function (names, event) {
-            for (var _i = 0, names_1 = names; _i < names_1.length; _i++) {
-                var name_1 = names_1[_i];
-                this.addEventListener(name_1, event);
-            }
-        };
-        return ObservableArray;
-    }(Array));
-    Simple.ObservableArray = ObservableArray;
-})(Simple || (Simple = {}));
 /// <reference path="../utils/i-string-dictionary.ts" />
-/// <reference path="observable-array.ts" />
 var Simple;
 (function (Simple) {
     var Watcher = (function () {
@@ -316,9 +229,11 @@ var Simple;
         };
         Watcher.prototype.setObject = function (object, value, key, path) {
             for (var child in value) {
-                var childPath = path + '.' + child;
-                this.bind(object[key], child, childPath);
-                this.set(object[key], value[child], child, childPath, true);
+                if (value.hasOwnProperty(child)) {
+                    var childPath = path + '.' + child;
+                    this.bind(object[key], child, childPath);
+                    this.set(object[key], value[child], child, childPath, true);
+                }
             }
         };
         Watcher.prototype.resetObject = function (path) {
@@ -332,28 +247,13 @@ var Simple;
                 }
             }
         };
-        Watcher.prototype.watchArrayFunctions = function (path, observableArray) {
-            var _this = this;
-            observableArray.addEventListeners([
-                'push',
-                'pop',
-                'shift',
-                'unshift',
-                'splice',
-                'sort',
-                'reverse'
-            ], function (oldValue, newValue) {
-                _this.valueChanged(path, oldValue, newValue);
-            });
-            return observableArray;
-        };
         Watcher.prototype.schedule = function (value, key, path) {
             var _this = this;
             var keyCount = Object.keys(value).length;
             var handler = window.setTimeout(function () {
                 if (keyCount !== Object.keys(value).length) {
                     for (var prop in value) {
-                        if (!Object.getOwnPropertyDescriptor(value, prop).get) {
+                        if (value.hasOwnProperty(prop) && !Object.getOwnPropertyDescriptor(value, prop).get) {
                             var childPath = path + '.' + prop;
                             var currentValue = value[prop];
                             value[prop] = undefined;
@@ -365,18 +265,56 @@ var Simple;
                 window.clearTimeout(handler);
             }, 1);
         };
-        Watcher.prototype.setArray = function (object, value, key, path) {
+        Watcher.prototype.extendArrayMethods = function (value, path) {
             var _this = this;
-            return this.watchArrayFunctions(path, new Simple.ObservableArray(value, function (index, item) {
+            var copy = value.slice();
+            var methodNames = [
+                'push',
+                'pop',
+                'shift',
+                'unshift',
+                'splice',
+                'sort',
+                'reverse'
+            ];
+            var _loop_1 = function (methodName) {
+                var original = value[methodName];
+                Object.defineProperty(value, methodName, {
+                    configurable: false,
+                    enumerable: false,
+                    value: function () {
+                        var args = [];
+                        for (var _i = 0; _i < arguments.length; _i++) {
+                            args[_i] = arguments[_i];
+                        }
+                        var result = original.apply(value, args);
+                        _this.valueChanged(path, copy, value);
+                        copy[methodName].apply(copy, args);
+                        return result;
+                    }
+                });
+            };
+            for (var _i = 0, methodNames_1 = methodNames; _i < methodNames_1.length; _i++) {
+                var methodName = methodNames_1[_i];
+                _loop_1(methodName);
+            }
+        };
+        Watcher.prototype.setArray = function (object, value, key, path) {
+            this.extendArrayMethods(value, path);
+            for (var index = 0; index < value.length; index++) {
+                var item = value[index];
                 var itemPath = path + "[" + index + "]";
-                _this.bind(object[key], index, itemPath);
-                _this.set(object[key], item, index, itemPath, true);
+                this.bind(object[key], index, itemPath);
+                this.set(object[key], item, index, itemPath, true);
                 for (var child in item) {
-                    var childPath = path + "[" + index + "]." + child;
-                    _this.bind(object[key][index], child, childPath);
-                    _this.set(object[key][index][child], item[child], child, childPath, true);
+                    if (item.hasOwnProperty(child)) {
+                        var childPath = path + "[" + index + "]." + child;
+                        this.bind(object[key][index], child, childPath);
+                        this.set(object[key][index][child], item[child], child, childPath, true);
+                    }
                 }
-            }));
+            }
+            return value;
         };
         Watcher.prototype.set = function (object, newValue, key, path, forceSet) {
             if (forceSet === void 0) { forceSet = false; }
@@ -483,7 +421,7 @@ var Simple;
                     var elements = this.htmlService.selectAll('[simple-bind]', viewContext);
                     view.model = view.model || {};
                     view.viewData = view.viewData || {};
-                    var _loop_1 = function (i) {
+                    var _loop_2 = function (i) {
                         var element = elements[i];
                         var attr = element.getAttribute('simple-bind');
                         if (attr.indexOf('model.') === 0) {
@@ -501,7 +439,7 @@ var Simple;
                     };
                     var this_1 = this;
                     for (var i = 0; i < elements.length; i++) {
-                        _loop_1(i);
+                        _loop_2(i);
                     }
                 };
                 SimpleBind = __decorate([

@@ -74,19 +74,6 @@ declare namespace Simple {
     }
 }
 declare namespace Simple {
-    class ObservableArray extends Array<any> {
-        private _copy;
-        private _events;
-        private _mutators;
-        constructor(array: any[], callback: (index: number, value: any) => void);
-        private extend();
-        private extendFunction(key, func);
-        private call(eventName, oldValue?, newValue?);
-        addEventListener(name: string, event: (oldValue?: any[], newValue?: any[]) => void): void;
-        addEventListeners(names: string[], event: (oldValue?: any[], newValue?: any[]) => void): void;
-    }
-}
-declare namespace Simple {
     interface IStringDictionary<T> {
         [key: string]: T;
     }
@@ -103,8 +90,8 @@ declare namespace Simple {
         private isObject(value);
         private setObject(object, value, key, path);
         private resetObject(path);
-        private watchArrayFunctions(path, observableArray);
         private schedule(value, key, path);
+        private extendArrayMethods(value, path);
         private setArray(object, value, key, path);
         private set(object, newValue, key, path, forceSet?);
         private get(key, path);

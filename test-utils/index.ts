@@ -63,7 +63,7 @@ class Test {
         testSection.appendChild(error);
     }
 
-    public static run(): void {
+    public static async run(): Promise<void> {
         let body = document.querySelector('body');
 
         for (let test of Test.testClasses) {
@@ -76,7 +76,8 @@ class Test {
                 let testSection = Test.addTest(testGroup, child.name);
 
                 try {
-                    child.func.apply(instance);
+                    await child.func.apply(instance);
+
                     Test.pass(testSection);
                 } catch (e) {
                     Test.fail(testSection, e);
@@ -127,8 +128,18 @@ class Assert {
         }
     }
 
-    public static delay(callBack: (...args: any[]) => void, milliseconds: number): void {
-
+    public static delay(callBack: (...args: any[]) => void, milliseconds?: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            let handle = window.setTimeout(args => {
+                try {
+                    callBack(args);
+                    window.clearTimeout(handle);                
+                    resolve();
+                } catch (e) {
+                    reject(e);
+                }
+            }, milliseconds);
+        });
     }
 }
 

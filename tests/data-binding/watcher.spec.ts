@@ -4,19 +4,19 @@
 class WatcherSpec {
     @testMethod()
     public watch_wasCalled_simpleProps() {
-        let view: any = {},
+        let view: any = {
+            model: {
+                firstName: 'First Name',
+                lastName: 'Last Name',
+                number: 1
+            }
+        },
             firstNameCalled = 0,
             lastNameCalled = 0,
             numberCalled = 0
         ;
 
         let watcher = new Simple.Watcher(view, 'model');
-
-        view.model = {
-            firstName: 'First Name',
-            lastName: 'Last Name',
-            number: 1
-        };
 
         watcher.watch('model.firstName', (oldValue, newValue) => {
             firstNameCalled++;
@@ -49,15 +49,15 @@ class WatcherSpec {
 
     @testMethod()
     public watch_simpleProps() {
-        let view: any = {};
+        let view: any = {
+            model: {
+                firstName: 'First Name',
+                lastName: 'Last Name',
+                number: 1
+            }
+        };
 
         let watcher = new Simple.Watcher(view, 'model');
-
-        view.model = {
-            firstName: 'First Name',
-            lastName: 'Last Name',
-            number: 1
-        };
 
         watcher.watch('model.firstName', (oldValue, newValue) => {
             Assert.areNotEqual(oldValue, newValue);
@@ -78,23 +78,23 @@ class WatcherSpec {
 
     @testMethod()
     public watch_wasCalled_object() {
-        let view: any = {},
+        let view: any = {
+            model: {
+                first: {
+                    second: {
+                        third: 'first.second.third'
+                    }
+                },
+                second: {
+                    third: 'second.third'
+                }
+            }
+        },
             firstSecondThirdCalled = 0,
             secondThirdCalled = 0            
         ;
 
         let watcher = new Simple.Watcher(view, 'model');
-
-        view.model = {
-            first: {
-                second: {
-                    third: 'first.second.third'
-                }
-            },
-            second: {
-                third: 'second.third'
-            }
-        };
 
         watcher.watch('model.first.second.third', (oldValue, newValue) => {
             firstSecondThirdCalled++;
@@ -121,23 +121,23 @@ class WatcherSpec {
 
     @testMethod()
     public watch_object() {
-        let view: any = {},
+        let view: any = {
+            model: {
+                first: {
+                    second: {
+                        third: 'first.second.third'
+                    }
+                },
+                second: {
+                    third: 'second.third'
+                }
+            }
+        },
             firstSecondThirdCalled = 0,
             secondThirdCalled = 0            
         ;
 
         let watcher = new Simple.Watcher(view, 'model');
-
-        view.model = {
-            first: {
-                second: {
-                    third: 'first.second.third'
-                }
-            },
-            second: {
-                third: 'second.third'
-            }
-        };
 
         watcher.watch('model.first.second.third', (oldValue, newValue) => {
             Assert.areNotEqual(oldValue, newValue);
@@ -152,7 +152,7 @@ class WatcherSpec {
     }
 
     @testMethod()
-    public watch_propAdded() {
+    public async watch_propAdded(): Promise<void> {
         let view: any = {
             model: {}
         }, newValueCalled = 0
@@ -167,8 +167,83 @@ class WatcherSpec {
 
         view.model.first = new Date();
 
-        window.setTimeout(()=> {
-            Assert.areNotEqual(0, newValueCalled);
-        }, 10);
+        Assert.delay(() => Assert.areNotEqual(0, newValueCalled), 10);
+    }
+
+    @testMethod()
+    public watch_array_childChanges(): void {
+        let view = {
+            model: {
+                items: [
+                    {
+                        name: 'Name',
+                        age: 20
+                    }
+                ]
+            }
+        },
+            nameCalled = 0,
+            ageCalled = 0
+        ;
+
+        let watcher = new Simple.Watcher(view, 'model');
+
+        watcher.watch('model.items[0].name', (oldValue, newValue) => {
+            Assert.areNotEqual(oldValue, newValue);
+            nameCalled++;
+        });
+
+        watcher.watch('model.items[0].age', (oldValue, newValue) => {
+            Assert.areNotEqual(oldValue, newValue);
+            ageCalled++;
+        });
+
+        view.model.items[0].name += ' changed';
+        view.model.items[0].age += 5;
+
+        Assert.areNotEqual(0, nameCalled);
+        Assert.areNotEqual(0, ageCalled);
+    }
+
+    @testMethod()
+    public watch_array_methodCalled(): void {
+        let view = {
+            model: {
+                items: [
+                    {
+                        key: 1
+                    },
+                    {
+                        key: 2
+                    },
+                    {
+                        key: 3
+                    }
+                ]
+            }
+        },
+            methodCalled = 0
+        ;
+
+        let watcher = new Simple.Watcher(view, 'model');
+
+        watcher.watch('model.items', (oldValue, newValue) => {
+            Assert.areNotEqual(oldValue, newValue);
+            methodCalled++;
+        });
+
+        view.model.items.push({
+            key: 4
+        });
+        view.model.items.pop();
+        view.model.items.shift();
+        view.model.items.unshift({
+            key: 5
+        });
+        view.model.items.splice(0, 1);
+        view.model.items.sort();
+        view.model.items.reverse();
+
+        Assert.areEqual(7, methodCalled);
     }
 }
